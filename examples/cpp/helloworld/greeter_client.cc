@@ -72,15 +72,36 @@ class GreeterClient {
     }
   }
 
+  // add a new SayHelloAgain() method to GreeterClient and invoke this method in
+  // main
+  std::string SayHelloAgain(const std::string& user) {
+    // Follows the same pattern as SayHello.
+    HelloRequest request;
+    request.set_name(user);
+    HelloReply reply;
+    ClientContext context;
+
+    // Here we can use the stub's newly available method we just added.
+    Status status = stub_->SayHelloAgain(&context, request, &reply);
+    if (status.ok()) {
+      return reply.message();
+    } else {
+      std::cout << status.error_code() << ": " << status.error_message()
+                << std::endl;
+      return "RPC failed";
+    }
+  }
+
  private:
   std::unique_ptr<Greeter::Stub> stub_;
 };
 
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
-  // Instantiate the client. It requires a channel, out of which the actual RPCs
-  // are created. This channel models a connection to an endpoint specified by
-  // the argument "--target=" which is the only expected argument.
+  // Instantiate the client. It requires a channel, out of which the actual
+  // RPCs are created. This channel models a connection to an endpoint
+  // specified by the argument "--target=" which is the only expected
+  // argument.
   std::string target_str = absl::GetFlag(FLAGS_target);
   // We indicate that the channel isn't authenticated (use of
   // InsecureChannelCredentials()).
@@ -88,6 +109,9 @@ int main(int argc, char** argv) {
       grpc::CreateChannel(target_str, grpc::InsecureChannelCredentials()));
   std::string user("world");
   std::string reply = greeter.SayHello(user);
+  std::cout << "Greeter received: " << reply << std::endl;
+
+  reply = greeter.SayHelloAgain(user);
   std::cout << "Greeter received: " << reply << std::endl;
 
   return 0;

@@ -1,0 +1,30 @@
+By walking through this example you’ll learn how to:
+
+1) Define a service in a .proto file.
+    after defining the service and rpc in the .proto and running the make file, we get: 
+    route_guide.pb.h, the header which declares your generated message classes
+    route_guide.pb.cc, which contains the implementation of your message classes
+    route_guide.grpc.pb.h, the header which declares your generated service classes
+    route_guide.grpc.pb.cc, which contains the implementation of your service classes
+
+    These contain:
+    All the protocol buffer code to populate, serialize, and retrieve our request and response message types
+    A class called RouteGuide that contains
+        a remote interface type (or stub) for clients to call with the methods defined in the RouteGuide service.
+        two abstract interfaces for servers to implement, also with the methods defined in the RouteGuide service.
+
+2) Generate server and client code using the protocol buffer compiler.
+
+3) Use the C++ gRPC API to write a simple client and server for your service.
+    Now we implement the service interface generated from our service definition
+    notes and comments are in route_guide_server.cc
+    
+    Then we create a C++ client for our RouteGuide service in route_guide_client.cc
+        In order to set additional options for the channel, use the grpc::CreateCustomChannel() api with any special channel arguments - grpc::ChannelArguments.
+
+    Then we build both the client and the server by doing make in the build directory
+
+    Run the server: ./route_guide_server --db_path=../../route_guide_db.json
+    From a different terminal, run the client: ./route_guide_client --db_path=../../route_guide_db.json
+
+

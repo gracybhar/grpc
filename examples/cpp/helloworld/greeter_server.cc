@@ -53,6 +53,17 @@ class GreeterServiceImpl final : public Greeter::Service {
     reply->set_message(prefix + request->name());
     return Status::OK;
   }
+
+  // update the server because we added say hello again to helloworld.proto:
+  Status SayHelloAgain(ServerContext* context, const HelloRequest* request,
+                       HelloReply* reply) override {
+    std::string prefix("Hello again ");
+    reply->set_message(prefix + request->name());
+    return Status::OK;
+  }
+  // now the new say hello again method is available in the stub/client and now
+  // we need to add it to greeter_client
+  //
 };
 
 void RunServer(uint16_t port) {

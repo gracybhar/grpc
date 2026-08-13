@@ -24,11 +24,25 @@ package helloworld;
 // The greeting service definition.
 service Greeter {
   // Sends a greeting
+  //  unary rpc: client sends a single request to the server and gets a single response back
   rpc SayHello (HelloRequest) returns (HelloReply) {}
 
+  // Sends another greeting
+  rpc SayHelloAgain (HelloRequest) returns (HelloReply) {}
+
+  // server stream rpc: client sends a request to the server and gets a stream to read a sequence of messages back.
   rpc SayHelloStreamReply (HelloRequest) returns (stream HelloReply) {}
 
+  // client streaming rpc: client has finished writing the messages, it waits for the server to read them and return its response
+  // rpc LotsOfGreetings(stream HelloRequest) returns (HelloResponse);
+
+  // bidirectional rpc: both sides send a sequence of messages using a read-write stream. 
+  // The two streams operate independently, so clients and servers can read and write in whatever 
+  // order they like: for example, the server could wait to receive all the client messages before 
+  // writing its responses, or it could alternately read a message then write a message, 
+  // or some other combination of reads and writes. The order of messages in each stream is preserved.
   rpc SayHelloBidiStream (stream HelloRequest) returns (stream HelloReply) {}
+
 }
 
 // The request message containing the user's name.

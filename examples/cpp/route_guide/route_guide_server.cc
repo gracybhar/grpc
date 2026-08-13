@@ -86,11 +86,21 @@ std::string GetFeatureName(const Point& point,
   return "";
 }
 
+// this class implements the generated RouteGuide::Service interface
+// this provides the default gRPC server behavior
+// THIS IMPLEMENTS ALL OF OUR SERVICE METHODS
 class RouteGuideImpl final : public RouteGuide::Service {
  public:
   explicit RouteGuideImpl(const std::string& db) {
     routeguide::ParseDb(db, &feature_list_);
   }
+
+  // This gets a Point from the client and returns the corresponding feature
+  // information from its database in a Feature
+  //    we pass a context object for the RPS (Point protocol buffer request)
+  //    and a Feature protocol buffer to fill in with the response information
+  //    we populate Feature with the appropriate information and then return the
+  //    Feature to client
 
   Status GetFeature(ServerContext* context, const Point* point,
                     Feature* feature) override {
@@ -99,6 +109,10 @@ class RouteGuideImpl final : public RouteGuide::Service {
     return Status::OK;
   }
 
+  // this is a server-side streaming RPC so we need to send back multiple
+  // Features to our client
+  // this time we get a request object (Rectangle) and a special ServerWriter
+  // object
   Status ListFeatures(ServerContext* context,
                       const routeguide::Rectangle* rectangle,
                       ServerWriter<Feature>* writer) override {
@@ -108,6 +122,9 @@ class RouteGuideImpl final : public RouteGuide::Service {
     long right = (std::max)(lo.longitude(), hi.longitude());
     long top = (std::max)(lo.latitude(), hi.latitude());
     long bottom = (std::min)(lo.latitude(), hi.latitude());
+    // we populate as many Feature objects as we need to return, writing them to
+    // the ServerWriter and then return to tell gRPC that we have finished
+    // writing responses
     for (const Feature& f : feature_list_) {
       if (f.location().longitude() >= left &&
           f.location().longitude() <= right &&
@@ -118,6 +135,8 @@ class RouteGuideImpl final : public RouteGuide::Service {
     return Status::OK;
   }
 
+  // same as above but client side stream but ServerReader instead and single
+  // response
   Status RecordRoute(ServerContext* context, ServerReader<Point>* reader,
                      RouteSummary* summary) override {
     Point point;
@@ -127,6 +146,9 @@ class RouteGuideImpl final : public RouteGuide::Service {
     Point previous;
 
     system_clock::time_point start_time = system_clock::now();
+    // we use the ServerReader's Read() method to read in our client's requests
+    // to a request object (Point) until no more messages and server continues
+    // reading until message stream returns false
     while (reader->Read(&point)) {
       point_count++;
       if (!GetFeatureName(point, feature_list_).empty()) {
@@ -148,6 +170,11 @@ class RouteGuideImpl final : public RouteGuide::Service {
     return Status::OK;
   }
 
+  // bidirectional streaming RPC
+  // now we have a ServerReaderWriter that can be used to read and write
+  // messages each side will always get messages in the order they were written
+  // and both client and server can read and write in any order the streams
+  // operate independently
   Status RouteChat(ServerContext* context,
                    ServerReaderWriter<RouteNote, RouteNote>* stream) override {
     RouteNote note;
@@ -159,6 +186,8 @@ class RouteGuideImpl final : public RouteGuide::Service {
           stream->Write(n);
         }
       }
+      // recievited_notes_ uys is an instance variable declared above and can be
+      // accessed by multiple threads
       received_notes_.push_back(note);
     }
 
@@ -171,15 +200,24 @@ class RouteGuideImpl final : public RouteGuide::Service {
   std::vector<RouteNote> received_notes_;
 };
 
+// now that we have implemented all of our methods (that were delared in .proto)
+// we need to start up the gRPC server so clients can actually use the service
 void RunServer(const std::string& db_path) {
   std::string server_address("0.0.0.0:50051");
+  // create an instance of our service implementation class
   RouteGuideImpl service(db_path);
 
+  // we build and start our server using a ServerBuilder
   ServerBuilder builder;
+  // specify the address and port we want to use to listen for client requests
   builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
+  // register our service implementation with the builder
   builder.RegisterService(&service);
+  // call BuildAndStart() on the builder to create and start an RPC server for
+  // our service
   std::unique_ptr<Server> server(builder.BuildAndStart());
   std::cout << "Server listening on " << server_address << std::endl;
+  // call Wait() on the server to do a blocking wait until process is killed
   server->Wait();
 }
 

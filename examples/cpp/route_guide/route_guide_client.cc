@@ -73,6 +73,8 @@ RouteNote MakeRouteNote(const std::string& message, long latitude,
   return n;
 }
 
+// now we can use the channel to create our stub using the NewStub method
+// provided in the RouteGuide class we generated from our .proto
 class RouteGuideClient {
  public:
   RouteGuideClient(std::shared_ptr<Channel> channel, const std::string& db)
@@ -81,9 +83,12 @@ class RouteGuideClient {
   }
 
   void GetFeature() {
+    // create and populate a request protocol buffer object (Point) and create a
+    // response protocol bugger object for the server to fill in
     Point point;
     Feature feature;
     point = MakePoint(409146138, -746188906);
+    // call this method that is below
     GetOneFeature(point, &feature);
     point = MakePoint(0, 0);
     GetOneFeature(point, &feature);
@@ -93,7 +98,6 @@ class RouteGuideClient {
     routeguide::Rectangle rect;
     Feature feature;
     ClientContext context;
-
     rect.mutable_lo()->set_latitude(400000000);
     rect.mutable_lo()->set_longitude(-750000000);
     rect.mutable_hi()->set_latitude(420000000);
@@ -101,8 +105,13 @@ class RouteGuideClient {
     std::cout << "Looking for features between 40, -75 and 42, -73"
               << std::endl;
 
+    // call the server-side streaming method ListFeatures, which returns a
+    // stream of geographical Features
+    // we pass in a context and request to get a ClientReader object back to
+    // read the server's responses
     std::unique_ptr<ClientReader<Feature> > reader(
         stub_->ListFeatures(&context, rect));
+    // and use Read() to repeatedly read the server's responses
     while (reader->Read(&feature)) {
       std::cout << "Found feature called " << feature.name() << " at "
                 << feature.location().latitude() / kCoordFactor_ << ", "
@@ -128,6 +137,8 @@ class RouteGuideClient {
         0, feature_list_.size() - 1);
     std::uniform_int_distribution<int> delay_distribution(500, 1500);
 
+    // we pass the method a context and response object and get back a
+    // ClientWriter
     std::unique_ptr<ClientWriter<Point> > writer(
         stub_->RecordRoute(&context, &stats));
     for (int i = 0; i < kPoints; i++) {
@@ -142,8 +153,13 @@ class RouteGuideClient {
       std::this_thread::sleep_for(
           std::chrono::milliseconds(delay_distribution(generator)));
     }
+    // once we have finished writing our client's requests to the stream we call
+    // WritesDone() to let gRPC know that we have finished writing
     writer->WritesDone();
+    // complete the call and get the status
     Status status = writer->Finish();
+    // if status is ok, our response object that we initially passed to
+    // RecordRoute() will be populated with the server's response
     if (status.ok()) {
       std::cout << "Finished trip with " << stats.point_count() << " points\n"
                 << "Passed " << stats.feature_count() << " features\n"
@@ -158,6 +174,8 @@ class RouteGuideClient {
   void RouteChat() {
     ClientContext context;
 
+    // we pass a context to the method and get back a ClientReaderWriter, wich
+    // we can use to both write and read messages
     std::shared_ptr<ClientReaderWriter<RouteNote, RouteNote> > stream(
         stub_->RouteChat(&context));
 
@@ -191,6 +209,8 @@ class RouteGuideClient {
  private:
   bool GetOneFeature(const Point& point, Feature* feature) {
     ClientContext context;
+    // we call the above method on the stub, passing in the context, request,
+    // and response
     Status status = stub_->GetFeature(&context, point, feature);
     if (!status.ok()) {
       std::cout << "GetFeature rpc failed." << std::endl;
@@ -205,6 +225,8 @@ class RouteGuideClient {
                 << feature->location().latitude() / kCoordFactor_ << ", "
                 << feature->location().longitude() / kCoordFactor_ << std::endl;
     } else {
+      // if the method returns ok, then we can read the response information
+      // from the server from our response object
       std::cout << "Found feature called " << feature->name() << " at "
                 << feature->location().latitude() / kCoordFactor_ << ", "
                 << feature->location().longitude() / kCoordFactor_ << std::endl;
