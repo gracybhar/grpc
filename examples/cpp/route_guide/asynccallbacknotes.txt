@@ -1,0 +1,12 @@
+This tutorial shows you how to write a simple server and 
+client in C++ using gRPC’s asynchronous callback APIs.
+
+There are 2 kinds of async apis: completion queue and call back
+Callback-based are easier to use. We will learn how to use the 
+callback APIs to implement the server and the client for: 
+    Unary RPC  
+    Server-side streaming RPC
+    Client-side streaming RPC
+    Bidirectional streaming RPC
+
+All notes are in the cooresponding route_guide_callback_... files

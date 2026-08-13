@@ -86,12 +86,16 @@ std::string GetFeatureName(const Point& point,
   return "";
 }
 
+// since we want to implement the service using the callback APIs, the service
+// interface that we should implement is RouteGuide::CallbackService
 class RouteGuideImpl final : public RouteGuide::CallbackService {
  public:
   explicit RouteGuideImpl(const std::string& db) {
     routeguide::ParseDb(db, &feature_list_);
   }
 
+  // after setting the output
+  // to finish the RPC we call Finish()
   grpc::ServerUnaryReactor* GetFeature(grpc::CallbackServerContext* context,
                                        const Point* point,
                                        Feature* feature) override {
@@ -127,6 +131,8 @@ class RouteGuideImpl final : public RouteGuide::CallbackService {
   }
 */
 
+  // Because ListFeatures is a server-streaming rpc, the return type should
+  // ServerWriterReactor
   grpc::ServerWriteReactor<Feature>* ListFeatures(
       CallbackServerContext* context,
       const routeguide::Rectangle* rectangle) override {

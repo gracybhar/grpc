@@ -307,6 +307,9 @@ class RouteGuideClient {
     std::mutex mu;
     std::condition_variable cv;
     bool done = false;
+    // the client now also needs to pass a class back (Status)
+    // the callback will be invoked after the server has fulfilled the request
+    // and the RPC is finished
     stub_->async()->GetFeature(
         &context, &point, feature,
         [&result, &mu, &cv, &done, feature, this](Status status) {
