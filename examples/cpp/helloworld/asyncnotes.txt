@@ -1,0 +1,39 @@
+This tutorial shows you how to write a simple server and client in C++ 
+using gRPC’s asynchronous/non-blocking APIs.
+
+Synchronous: the client waits for the RPC to finish.
+Asynchronous: the client starts the RPC and can continue doing other work while the RPC is happening.
+
+Overview: 
+gRPC uses the CompletionQueue API for asynchronous operations. 
+    1) bind a CompletionQueue to an RPC call
+    2) do something like a read or write, present with a unique void* tag 
+    3) call CompletionQueue::Next to wait for operations to complete. 
+       if tag appears, it indicates that the cooresponding operation is complete
+
+Async client: 
+You first create a channel and stub (like a synchronous client)
+    --> Initiate the RPC and create a handle for it. Bind the RPC to CompletionQueue
+    --> Ask for the reply and final status with a unique tag
+    --> Wait for the completion queue to return the next tag
+
+Async server: 
+The server implementation requests an RPC call with a tag and then waits 
+for the completion queue to return the tag. The basic flow for handling an 
+RPC asynchronously is: 
+    --> build a server exporting the async service
+    --> request one RPC, providing a unique Tag
+    --> wait for the completion queue to return the tag
+        the context, request, and responder are ready once the tag is retrieved
+    --> wait for the completion queue to return the tag.
+        the RPC is finished when the tag is back
+
+To account for the server handling multiple requests concurrently, 
+we use a CallData object to maintain the state of each RPC, and uses the 
+address of this object as the unique tag for the call.
+For simplicity, the server only uses one completion queue for all events, 
+and runs a main loop in HandleRpcs to query the queue. 
+
+    Shutting down the server: 
+    Care must be taken to shut down the completion queue after the server has also
+    been shut down. 

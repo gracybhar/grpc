@@ -46,6 +46,7 @@ using helloworld::Greeter;
 using helloworld::HelloReply;
 using helloworld::HelloRequest;
 
+// this class holds everything that we need to run the server
 class ServerImpl final {
  public:
   ~ServerImpl() {
@@ -58,6 +59,7 @@ class ServerImpl final {
   void Run(uint16_t port) {
     std::string server_address = absl::StrFormat("0.0.0.0:%d", port);
 
+    // build a server exporting the async service
     ServerBuilder builder;
     // Listen on the given address without any authentication mechanism.
     builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
@@ -75,6 +77,8 @@ class ServerImpl final {
     HandleRpcs();
   }
 
+  // A CallData object represents one RPC call (think of this as a state
+  // machine)
  private:
   // Class encompassing the state and logic needed to serve a request.
   class CallData {
@@ -104,6 +108,8 @@ class ServerImpl final {
         // Spawn a new CallData instance to serve new clients while we process
         // the one for this CallData. The instance will deallocate itself as
         // part of its FINISH state.
+        // add it to the completionqueue to make sure they are processed in
+        // order
         new CallData(service_, cq_);
 
         // The actual processing.
@@ -172,7 +178,10 @@ class ServerImpl final {
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
   ServerImpl server;
-  server.Run(absl::GetFlag(FLAGS_port));
+  server.Run(absl::GetFlag(FLAGS_port));  // --> HandleRpcs() --> while(true)
 
-  return 0;
+  return 0;  // here local objects are destroyed such as the server and
+             // completion queue (shutdown)
+             // but this example doesnt handle shutdown which is why we manually
+             // do it in terminal
 }

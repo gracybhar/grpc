@@ -70,18 +70,24 @@ class GreeterClient {
     // Storage for the status of the RPC upon completion.
     Status status;
 
+    // we initiate the rpc, create a handle for it, and bind it to the
+    // CompletionQueue cq
     std::unique_ptr<ClientAsyncResponseReader<HelloReply> > rpc(
         stub_->AsyncSayHello(&context, request, &cq));
 
     // Request that, upon completion of the RPC, "reply" be updated with the
     // server's response; "status" with the indication of whether the operation
     // was successful. Tag the request with the integer 1.
+    // we ask for the reply and final status, with a unique tag of integer 1
     rpc->Finish(&reply, &status, (void*)1);
     void* got_tag;
     bool ok = false;
     // Block until the next result is available in the completion queue "cq".
     // The return value of Next should always be checked. This return value
     // tells us whether there is any kind of event or the cq_ is shutting down.
+    // Wait for the completion queue to return the next tag.
+    // The reply and status are ready once the tag passed into the corresponding
+    // Finish() call is returned.
     CHECK(cq.Next(&got_tag, &ok));
 
     // Verify that the result from "cq" corresponds, by its tag, our previous
